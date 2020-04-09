@@ -1,0 +1,22 @@
+kind: pipeline
+name: default
+
+steps:
+  - name: vet
+    image:  golang:1.14.1
+    pull: always
+    commands:
+      - go mod tidy
+      - go vet ./...
+  - name: race
+    image:  golang:1.14.1
+    pull: always
+    commands:
+      - go mod tidy
+      - go test -race ./...
+  - name: test
+    image:  golang:1.14.1
+    pull: always
+    commands:
+      - go mod tidy
+      - go test -cover ./...
