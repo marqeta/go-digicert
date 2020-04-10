@@ -127,3 +127,23 @@ func TestUsersList_doError(t *testing.T) {
 		t.Errorf("Expected error %s, but got %s", do_error.Error(), err)
 	}
 }
+
+func TestUsersEdit(t *testing.T) {
+	var user_id int64 = 1
+	s, client := user_test_mock_setup()
+	user := &User{ID: user_id}
+	req, _ := http.NewRequest("PUT", "user/1", nil)
+	client.On(
+		"NewRequest",
+		"PUT",
+		"user/1",
+		user,
+	).Return(req, nil).Once()
+	client.On(
+		"Do",
+		req,
+		user,
+	).Return(&Response{}, nil).Once()
+
+	s.Edit(user)
+}
