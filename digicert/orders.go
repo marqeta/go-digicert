@@ -3,15 +3,15 @@ package digicert
 type OrdersService service
 
 type Order struct {
-	ID                          *int64       `json:"id"`
+	ID                          int64        `json:"id"`
 	Certificate                 *Certificate `json:"certificate,omitempty"`
-	ValidityYears               *int         `json:"validity_years"`
-	CustomExpirationDate        *string      `json:"custom_expiration_date,omitempty"`
-	Comments                    *string      `json:"comments,omitempty"`
-	DisableRenewalNotifications *bool        `json:"disable_renewal_notifications,omitempty"`
-	RenewalOfOrderID            *int         `json:"renewal_of_order_id,omitempty"`
-	PaymentMethod               *string      `json:"payment_method,omitempty"`
-	Status                      *string
+	ValidityYears               int          `json:"validity_years"`
+	CustomExpirationDate        string       `json:"custom_expiration_date,omitempty"`
+	Comments                    string       `json:"comments,omitempty"`
+	DisableRenewalNotifications bool         `json:"disable_renewal_notifications,omitempty"`
+	RenewalOfOrderID            int          `json:"renewal_of_order_id,omitempty"`
+	PaymentMethod               string       `json:"payment_method,omitempty"`
+	Status                      string
 }
 
 type orderList struct {

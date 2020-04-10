@@ -56,7 +56,7 @@ func TestNewRequest(t *testing.T) {
 	username := "u"
 
 	inURL, outURL := "foo", defaultBaseURL+"foo"
-	inBody, outBody := &User{Username: &username}, `{"username":"u"}`+"\n"
+	inBody, outBody := &User{Username: username}, `{"username":"u"}`+"\n"
 	req, _ := c.NewRequest("GET", inURL, inBody)
 
 	// test that relative URL was expanded
