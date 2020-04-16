@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/mock"
 )
@@ -38,6 +40,14 @@ func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	return ret.Get(0).(*http.Response), ret.Error(1)
 }
 
+type TestRequestUser struct {
+	Username string `json:"username"`
+}
+
+type TestResponseCodeRange struct {
+	min, max int
+}
+
 func TestNewClient(t *testing.T) {
 	c := NewClient("", nil)
 
@@ -56,7 +66,7 @@ func TestNewRequest(t *testing.T) {
 	username := "u"
 
 	inURL, outURL := "foo", defaultBaseURL+"foo"
-	inBody, outBody := &User{Username: username}, `{"username":"u"}`+"\n"
+	inBody, outBody := &TestRequestUser{Username: username}, `{"username":"u"}`+"\n"
 	req, _ := c.NewRequest("GET", inURL, inBody)
 
 	// test that relative URL was expanded
@@ -191,5 +201,44 @@ func TestDo_httpClientError(t *testing.T) {
 	_, err := c.Do(&http.Request{}, nil)
 	if err == nil {
 		t.Fatalf("Error %s not handled", errors.New("do_error"))
+	}
+}
+
+func TestCheckResponse(t *testing.T) {
+	// We don't care about true randomness... we just want some noise for generating 2xx codes
+	rand.Seed(time.Now().UnixNano())
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(rand.Intn(99) + 200)
+		fmt.Fprint(w, `{"A":"a"}`)
+	}
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	c := NewClient("", nil)
+	err := c.CheckResponse(resp)
+	if err != nil {
+		t.Fatalf("Should return nil for 2xx status codes, but %s returned", err)
+	}
+}
+
+func TestCheckResponse_non200(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(400)
+		fmt.Fprint(w, `{"errors":[{"code": "invalid_access_role","message":"not allowed"}]}`)
+	}
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	resp.Request = req
+	c := NewClient("", nil)
+	err := c.CheckResponse(resp)
+	if err == nil {
+		t.Fatalf("Should return nil for 2xx status codes, but %s returned", err)
 	}
 }

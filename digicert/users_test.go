@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/mock"
 )
 
 func user_test_mock_setup() (*UsersService, *MockClient) {
@@ -142,8 +144,28 @@ func TestUsersEdit(t *testing.T) {
 	client.On(
 		"Do",
 		req,
-		user,
+		mock.AnythingOfType("*digicert.User"),
 	).Return(&Response{}, nil).Once()
 
 	s.Edit(user)
+}
+
+func TestUsersCreate(t *testing.T) {
+	var user_id int64 = 1
+	s, client := user_test_mock_setup()
+	user := &User{ID: user_id}
+	req, _ := http.NewRequest("POST", "user", nil)
+	client.On(
+		"NewRequest",
+		"POST",
+		"user",
+		user,
+	).Return(req, nil).Once()
+	client.On(
+		"Do",
+		req,
+		user,
+	).Return(&Response{}, nil).Once()
+
+	s.Create(user)
 }
