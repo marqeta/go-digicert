@@ -2,8 +2,8 @@ package digicert
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 )
 
@@ -15,115 +15,67 @@ func order_test_mock_setup() (*OrdersService, *MockClient) {
 }
 
 func TestOrdersList(t *testing.T) {
-	s, client := order_test_mock_setup()
-	req, _ := http.NewRequest("GET", "order/certificate", nil)
-	client.On(
-		"NewRequest",
-		"GET",
-		"order/certificate",
-		nil,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		new(orderList),
-	).Return(&Response{}, nil).Once()
-
-	s.List()
-}
-
-func TestOrdersList_newRequestError(t *testing.T) {
-	s, client := order_test_mock_setup()
-	req, _ := http.NewRequest("GET", "order/certificate", nil)
-	nr_error := errors.New("new_request")
-	client.On(
-		"NewRequest",
-		"GET",
-		"order/certificate",
-		nil,
-	).Return(req, nr_error).Once()
-
-	_, _, err := s.List()
-	if err == nil || !strings.Contains(err.Error(), nr_error.Error()) {
-		t.Errorf("Expected error %s, but got %s", nr_error.Error(), err)
+	cases := []struct {
+		nrError       error
+		doError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("do"), errors.New("do")},
+		{nil, nil, nil},
 	}
-}
-
-func TestOrdersList_doError(t *testing.T) {
-	s, client := order_test_mock_setup()
 	req, _ := http.NewRequest("GET", "order/certificate", nil)
-	do_error := errors.New("do")
-	client.On(
-		"NewRequest",
-		"GET",
-		"order/certificate",
-		nil,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		new(orderList),
-	).Return(&Response{}, do_error).Once()
 
-	_, _, err := s.List()
-	if err == nil || !strings.Contains(err.Error(), do_error.Error()) {
-		t.Errorf("Expected error %s, but got %s", do_error.Error(), err)
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing order listing with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := order_test_mock_setup()
+			client.On(
+				"NewRequest",
+				"GET",
+				"order/certificate",
+				nil,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				new(orderList),
+			).Return(&Response{}, c.expectedError).Once()
+
+			_, _, err := s.List()
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
 	}
 }
 
 func TestOrdersGet(t *testing.T) {
-	s, client := order_test_mock_setup()
-	req, _ := http.NewRequest("GET", "order/certificate/1", nil)
-	client.On(
-		"NewRequest",
-		"GET",
-		"order/certificate/1",
-		nil,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		new(Order),
-	).Return(&Response{}, nil).Once()
-
-	s.Get(1)
-}
-
-func TestOrdersGet_newRequestError(t *testing.T) {
-	s, client := order_test_mock_setup()
-	req, _ := http.NewRequest("GET", "order/certificate/1", nil)
-	nr_error := errors.New("new_request")
-	client.On(
-		"NewRequest",
-		"GET",
-		"order/certificate/1",
-		nil,
-	).Return(req, nr_error).Once()
-
-	_, _, err := s.Get(1)
-	if err == nil || !strings.Contains(err.Error(), nr_error.Error()) {
-		t.Errorf("Expected error %s, but got %s", nr_error.Error(), err)
+	cases := []struct {
+		nrError       error
+		doError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("do"), errors.New("do")},
+		{nil, nil, nil},
 	}
-}
-
-func TestOrdersGet_doError(t *testing.T) {
-	s, client := order_test_mock_setup()
 	req, _ := http.NewRequest("GET", "order/certificate/1", nil)
-	do_error := errors.New("do")
-	client.On(
-		"NewRequest",
-		"GET",
-		"order/certificate/1",
-		nil,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		new(Order),
-	).Return(&Response{}, do_error).Once()
 
-	_, _, err := s.Get(1)
-	if err == nil || !strings.Contains(err.Error(), do_error.Error()) {
-		t.Errorf("Expected error %s, but got %s", do_error.Error(), err)
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing order retrieval with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := order_test_mock_setup()
+			client.On(
+				"NewRequest",
+				"GET",
+				"order/certificate/1",
+				nil,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				new(Order),
+			).Return(&Response{}, c.doError).Once()
+
+			_, _, err := s.Get(1)
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
 	}
 }
