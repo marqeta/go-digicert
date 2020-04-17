@@ -7,7 +7,7 @@ import (
 )
 
 func TestLoggerReturnsGlobalSugar(t *testing.T) {
-	if Logger() != zap.S() {
+	if logger() != zap.S() {
 		t.Error("Expectd Logger() to return the global sugared logger, but returned something else")
 	}
 }

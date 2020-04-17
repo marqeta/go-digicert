@@ -4,6 +4,6 @@ import (
 	"go.uber.org/zap"
 )
 
-func Logger() *zap.SugaredLogger {
+func logger() *zap.SugaredLogger {
 	return zap.S()
 }
