@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -93,6 +94,12 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	}
 	defer resp.Body.Close()
 	response := &Response{Response: resp}
+
+	err = c.CheckResponse(resp)
+	if err != nil {
+		return response, err
+	}
+
 	if v != nil {
 		decErr := json.NewDecoder(resp.Body).Decode(v)
 		if decErr == io.EOF {
@@ -106,6 +113,32 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	return response, err
 }
 
+func (c *Client) CheckResponse(resp *http.Response) error {
+	if code := resp.StatusCode; 200 <= code && code <= 299 {
+		return nil
+	}
+	errorResponse := &ErrorResponse{Response: resp}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err == nil && data != nil {
+		json.Unmarshal(data, errorResponse)
+	}
+	return errorResponse
+}
+
 type Response struct {
 	*http.Response
+}
+
+type ErrorResponse struct {
+	*http.Response
+	Errors []APIError `json:"errors"`
+}
+
+type APIError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func (r *ErrorResponse) Error() string {
+	return fmt.Sprintf("%v %v: %d %v", r.Response.Request.Method, r.Response.Request.URL, r.Response.StatusCode, r.Errors)
 }
