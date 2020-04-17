@@ -1,5 +1,9 @@
 package digicert
 
+import (
+	"fmt"
+)
+
 type OrdersService service
 
 type Order struct {
@@ -11,7 +15,16 @@ type Order struct {
 	DisableRenewalNotifications bool         `json:"disable_renewal_notifications,omitempty"`
 	RenewalOfOrderID            int          `json:"renewal_of_order_id,omitempty"`
 	PaymentMethod               string       `json:"payment_method,omitempty"`
-	Status                      string
+	Status                      string       `json:"status,omitempty"`
+	// These two fields are perhaps candidates for their own structs. The
+	// Digicert API is not consistent in what properties it returns!
+	Requests     *[]OrderRequest `json:"requests,omitempty"`
+	CertficateID int64           `json:"certificate_id,omitempty"`
+}
+
+type OrderRequest struct {
+	ID     int64  `json:"id"`
+	Status string `json:"status"`
 }
 
 type orderList struct {
@@ -22,17 +35,29 @@ func (o Order) String() string {
 	return Stringify(o)
 }
 
-func (s *OrdersService) List() (*[]Order, *Response, error) {
-	req, err := s.client.NewRequest("GET", "order/certificate", nil)
+func (s *OrdersService) Get(order_id int64) (*Order, *Response, error) {
+	order := &Order{}
+	resp, err := s.reqHelper("GET", fmt.Sprintf("order/certificate/%d", order_id), nil, order)
 	if err != nil {
-		return nil, nil, err
+		return nil, resp, err
 	}
+	return order, resp, nil
+}
 
+func (s *OrdersService) List() (*[]Order, *Response, error) {
 	list := new(orderList)
-	resp, err := s.client.Do(req, list)
+	resp, err := s.reqHelper("GET", "order/certificate", nil, list)
 	if err != nil {
 		return nil, resp, err
 	}
 
 	return list.Orders, resp, nil
+}
+
+func (s *OrdersService) reqHelper(method, path string, body, v interface{}) (*Response, error) {
+	req, err := s.client.NewRequest(method, path, body)
+	if err != nil {
+		return nil, err
+	}
+	return s.client.Do(req, v)
 }

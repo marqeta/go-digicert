@@ -70,3 +70,60 @@ func TestOrdersList_doError(t *testing.T) {
 		t.Errorf("Expected error %s, but got %s", do_error.Error(), err)
 	}
 }
+
+func TestOrdersGet(t *testing.T) {
+	s, client := order_test_mock_setup()
+	req, _ := http.NewRequest("GET", "order/certificate/1", nil)
+	client.On(
+		"NewRequest",
+		"GET",
+		"order/certificate/1",
+		nil,
+	).Return(req, nil).Once()
+	client.On(
+		"Do",
+		req,
+		new(Order),
+	).Return(&Response{}, nil).Once()
+
+	s.Get(1)
+}
+
+func TestOrdersGet_newRequestError(t *testing.T) {
+	s, client := order_test_mock_setup()
+	req, _ := http.NewRequest("GET", "order/certificate/1", nil)
+	nr_error := errors.New("new_request")
+	client.On(
+		"NewRequest",
+		"GET",
+		"order/certificate/1",
+		nil,
+	).Return(req, nr_error).Once()
+
+	_, _, err := s.Get(1)
+	if err == nil || !strings.Contains(err.Error(), nr_error.Error()) {
+		t.Errorf("Expected error %s, but got %s", nr_error.Error(), err)
+	}
+}
+
+func TestOrdersGet_doError(t *testing.T) {
+	s, client := order_test_mock_setup()
+	req, _ := http.NewRequest("GET", "order/certificate/1", nil)
+	do_error := errors.New("do")
+	client.On(
+		"NewRequest",
+		"GET",
+		"order/certificate/1",
+		nil,
+	).Return(req, nil).Once()
+	client.On(
+		"Do",
+		req,
+		new(Order),
+	).Return(&Response{}, do_error).Once()
+
+	_, _, err := s.Get(1)
+	if err == nil || !strings.Contains(err.Error(), do_error.Error()) {
+		t.Errorf("Expected error %s, but got %s", do_error.Error(), err)
+	}
+}
