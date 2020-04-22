@@ -29,8 +29,10 @@ type Client struct {
 
 	apiKey string
 
-	Users  *UsersService
-	Orders *OrdersService
+	Users         *UsersService
+	Orders        *OrdersService
+	Organizations *OrganizationsService
+	Products      *ProductsService
 }
 
 type HTTPClient interface {
@@ -51,7 +53,17 @@ func NewClient(apiKey string, httpClient HTTPClient) *Client {
 	c.common.client = c
 	c.Users = (*UsersService)(&c.common)
 	c.Orders = (*OrdersService)(&c.common)
+	c.Organizations = (*OrganizationsService)(&c.common)
+	c.Products = (*ProductsService)(&c.common)
 	return c
+}
+
+func executeAction(c DigicertClient, method, path string, body, v interface{}) (*Response, error) {
+	req, err := c.NewRequest(method, path, body)
+	if err != nil {
+		return nil, err
+	}
+	return c.Do(req, v)
 }
 
 func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Request, error) {

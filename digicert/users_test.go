@@ -17,11 +17,11 @@ func user_test_mock_setup() (*UsersService, *MockClient) {
 func TestUsersGetMe(t *testing.T) {
 	cases := []struct {
 		nrError       error
-		doError       error
+		DoError       error
 		expectedError error
 	}{
 		{errors.New("new_request"), nil, errors.New("new_request")},
-		{nil, errors.New("do"), errors.New("do")},
+		{nil, errors.New("Do"), errors.New("Do")},
 		{nil, nil, nil},
 	}
 
@@ -39,7 +39,7 @@ func TestUsersGetMe(t *testing.T) {
 				"Do",
 				req,
 				new(User),
-			).Return(&Response{}, c.doError).Once()
+			).Return(&Response{}, c.DoError).Once()
 
 			_, _, err := s.GetMe()
 			testExpectedErrorChecker(t, c.expectedError, err)
@@ -50,11 +50,11 @@ func TestUsersGetMe(t *testing.T) {
 func TestUsersList(t *testing.T) {
 	cases := []struct {
 		nrError       error
-		doError       error
+		DoError       error
 		expectedError error
 	}{
 		{errors.New("new_request"), nil, errors.New("new_request")},
-		{nil, errors.New("do"), errors.New("do")},
+		{nil, errors.New("Do"), errors.New("Do")},
 		{nil, nil, nil},
 	}
 	req, _ := http.NewRequest("GET", "user", nil)
@@ -72,7 +72,7 @@ func TestUsersList(t *testing.T) {
 				"Do",
 				req,
 				new(userList),
-			).Return(&Response{}, c.doError).Once()
+			).Return(&Response{}, c.DoError).Once()
 
 			_, _, err := s.List()
 			testExpectedErrorChecker(t, c.expectedError, err)
@@ -84,11 +84,11 @@ func TestUsersEdit(t *testing.T) {
 	user := &User{ID: 1}
 	cases := []struct {
 		nrError       error
-		doError       error
+		DoError       error
 		expectedError error
 	}{
 		{errors.New("new_request"), nil, errors.New("new_request")},
-		{nil, errors.New("do"), errors.New("do")},
+		{nil, errors.New("Do"), errors.New("Do")},
 		{nil, nil, nil},
 	}
 	req, _ := http.NewRequest("GET", "user/1", nil)
@@ -106,7 +106,7 @@ func TestUsersEdit(t *testing.T) {
 				"Do",
 				req,
 				user,
-			).Return(&Response{}, c.doError).Once()
+			).Return(&Response{}, c.DoError).Once()
 
 			_, _, err := s.Edit(user)
 			testExpectedErrorChecker(t, c.expectedError, err)
@@ -118,11 +118,11 @@ func TestUsersCreate(t *testing.T) {
 	user := &User{}
 	cases := []struct {
 		nrError       error
-		doError       error
+		DoError       error
 		expectedError error
 	}{
 		{errors.New("new_request"), nil, errors.New("new_request")},
-		{nil, errors.New("do"), errors.New("do")},
+		{nil, errors.New("Do"), errors.New("Do")},
 		{nil, nil, nil},
 	}
 	req, _ := http.NewRequest("POST", "user", nil)
@@ -140,7 +140,7 @@ func TestUsersCreate(t *testing.T) {
 				"Do",
 				req,
 				user,
-			).Return(&Response{}, c.doError).Once()
+			).Return(&Response{}, c.DoError).Once()
 
 			_, _, err := s.Create(user)
 			testExpectedErrorChecker(t, c.expectedError, err)
