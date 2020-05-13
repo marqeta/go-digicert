@@ -7,9 +7,9 @@ import (
 type UsersService service
 
 type User struct {
-	ID                      int64        `json:"id,omitempty"`
+	ID                      int          `json:"id,omitempty"`
 	Username                string       `json:"username,omitempty"`
-	AccountID               int64        `json:"account_id,omitempty"` // CertCentral Account ID
+	AccountID               int          `json:"account_id,omitempty"` // CertCentral Account ID
 	FirstName               string       `json:"first_name,omitempty"`
 	LastName                string       `json:"last_name,omitempty"`
 	Email                   string       `json:"email,omitempty"`
@@ -28,12 +28,12 @@ type User struct {
 }
 
 type AccessRole struct {
-	ID   int64  `json:"id,omitempty"`
+	ID   int    `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
 }
 
 type userList struct {
-	Users *[]User
+	Users []*User
 }
 
 func (u User) String() string {
@@ -41,15 +41,24 @@ func (u User) String() string {
 }
 
 func (s *UsersService) GetMe() (*User, *Response, error) {
+	return s.get("user/me")
+}
+
+func (s *UsersService) Get(id int) (*User, *Response, error) {
+	path := fmt.Sprintf("user/%d", id)
+	return s.get(path)
+}
+
+func (s *UsersService) get(path string) (*User, *Response, error) {
 	user := new(User)
-	resp, err := executeAction(s.client, "GET", "user/me", nil, user)
+	resp, err := executeAction(s.client, "GET", path, nil, user)
 	if err != nil {
 		return nil, resp, err
 	}
 	return user, resp, nil
 }
 
-func (s *UsersService) List() (*[]User, *Response, error) {
+func (s *UsersService) List() ([]*User, *Response, error) {
 	list := new(userList)
 	resp, err := executeAction(s.client, "GET", "user", nil, list)
 	if err != nil {

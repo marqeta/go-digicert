@@ -47,6 +47,39 @@ func TestUsersGetMe(t *testing.T) {
 	}
 }
 
+func TestUsersGet(t *testing.T) {
+	cases := []struct {
+		nrError       error
+		DoError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("Do"), errors.New("Do")},
+		{nil, nil, nil},
+	}
+
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing self retrieval with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := user_test_mock_setup()
+			req, _ := http.NewRequest("GET", "user/1", nil)
+			client.On(
+				"NewRequest",
+				"GET",
+				"user/1",
+				nil,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				new(User),
+			).Return(&Response{}, c.DoError).Once()
+
+			_, _, err := s.Get(1)
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
+	}
+}
+
 func TestUsersList(t *testing.T) {
 	cases := []struct {
 		nrError       error
