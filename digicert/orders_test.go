@@ -80,7 +80,7 @@ func TestOrdersGet(t *testing.T) {
 	}
 }
 
-func TestOrdersCreate(t *testing.T) {
+func TestOrdersCreate_standard(t *testing.T) {
 	cases := []struct {
 		nrError       error
 		doError       error
@@ -108,7 +108,41 @@ func TestOrdersCreate(t *testing.T) {
 				new(Order),
 			).Return(&Response{}, c.doError).Once()
 
-			_, _, err := s.Create(newOrder)
+			_, _, err := s.CreateStandard(newOrder)
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
+	}
+}
+
+func TestOrdersCreate_wildcard(t *testing.T) {
+	cases := []struct {
+		nrError       error
+		doError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("do"), errors.New("do")},
+		{nil, nil, nil},
+	}
+	req, _ := http.NewRequest("POST", "order/certificate/ssl_plus", nil)
+
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing order retrieval with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := order_test_mock_setup()
+			newOrder := InitializeOrder()
+			client.On(
+				"NewRequest",
+				"POST",
+				"order/certificate/ssl_wildcard",
+				newOrder,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				new(Order),
+			).Return(&Response{}, c.doError).Once()
+
+			_, _, err := s.CreateWildcard(newOrder)
 			testExpectedErrorChecker(t, c.expectedError, err)
 		})
 	}

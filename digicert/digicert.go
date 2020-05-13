@@ -33,6 +33,7 @@ type Client struct {
 	Orders        *OrdersService
 	Organizations *OrganizationsService
 	Products      *ProductsService
+	Certificates  *CertificatesService
 }
 
 type HTTPClient interface {
@@ -43,19 +44,26 @@ type service struct {
 	client DigicertClient
 }
 
-func NewClient(apiKey string, httpClient HTTPClient) *Client {
-	baseURL, _ := url.Parse(defaultBaseURL)
+func NewClient(apiKey string, httpClient HTTPClient, apiURL string) (*Client, error) {
+	if apiURL == "" {
+		apiURL = defaultBaseURL
+	}
+	parsedURL, err := url.Parse(apiURL)
+	if err != nil {
+		return nil, err
+	}
 	if httpClient == nil {
 		httpClient = &http.Client{}
 	}
-	c := &Client{httpClient: httpClient, BaseURL: baseURL}
+	c := &Client{httpClient: httpClient, BaseURL: parsedURL}
 	c.apiKey = apiKey
 	c.common.client = c
 	c.Users = (*UsersService)(&c.common)
 	c.Orders = (*OrdersService)(&c.common)
 	c.Organizations = (*OrganizationsService)(&c.common)
 	c.Products = (*ProductsService)(&c.common)
-	return c
+	c.Certificates = (*CertificatesService)(&c.common)
+	return c, nil
 }
 
 func executeAction(c DigicertClient, method, path string, body, v interface{}) (*Response, error) {
@@ -104,7 +112,6 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 	response := &Response{Response: resp}
 
 	err = c.CheckResponse(resp)
@@ -113,6 +120,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	}
 
 	if v != nil {
+		defer resp.Body.Close()
 		decErr := json.NewDecoder(resp.Body).Decode(v)
 		if decErr == io.EOF {
 			decErr = nil // ignore EOF errors caused by empty response body
@@ -132,6 +140,7 @@ func (c *Client) CheckResponse(resp *http.Response) error {
 	errorResponse := &ErrorResponse{Response: resp}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err == nil && data != nil {
+		errorResponse.rawBody = data
 		json.Unmarshal(data, errorResponse)
 	}
 	return errorResponse
@@ -143,7 +152,8 @@ type Response struct {
 
 type ErrorResponse struct {
 	*http.Response
-	Errors []APIError `json:"errors"`
+	Errors  []APIError `json:"errors"`
+	rawBody []byte
 }
 
 type APIError struct {
@@ -152,5 +162,5 @@ type APIError struct {
 }
 
 func (r *ErrorResponse) Error() string {
-	return fmt.Sprintf("%v %v: %d %v", r.Response.Request.Method, r.Response.Request.URL, r.Response.StatusCode, r.Errors)
+	return fmt.Sprintf("%v %v: %+v %d %v %s", r.Response.Request.Method, r.Response.Request.URL, r.Response.Header, r.Response.StatusCode, r.Errors, r.rawBody)
 }
