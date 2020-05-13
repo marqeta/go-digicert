@@ -59,6 +59,22 @@ func TestNewClient(t *testing.T) {
 	if c.httpClient == c2.httpClient {
 		t.Error("NewClient returned same http.Clients, but they should differ")
 	}
+
+	c3, _ := NewClient("", nil, "foo/bar")
+	if got, want := c3.BaseURL.String(), "foo/bar"; got != want {
+		t.Errorf("NewClient BaseURL is %v, want %v", got, want)
+	}
+
+	httpClient := new(MockHTTPClient)
+	c4, _ := NewClient("", httpClient, "")
+	if c4.httpClient != httpClient {
+		t.Error("NewClient should have used provided HTTP Client, but created a new one instead")
+	}
+
+	c5, err := NewClient("", nil, "$$$$illegalURLcharcters%%%&&}[]")
+	if c5 != nil || err == nil {
+		t.Errorf("Invalid URL paths should result in an error and a nil client. Client is %+v and error is %s", c5, err)
+	}
 }
 
 func TestNewRequest(t *testing.T) {
