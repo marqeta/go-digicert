@@ -2,8 +2,8 @@ package digicert
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 )
 
@@ -15,58 +15,151 @@ func order_test_mock_setup() (*OrdersService, *MockClient) {
 }
 
 func TestOrdersList(t *testing.T) {
-	s, client := order_test_mock_setup()
+	cases := []struct {
+		nrError       error
+		doError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("do"), errors.New("do")},
+		{nil, nil, nil},
+	}
 	req, _ := http.NewRequest("GET", "order/certificate", nil)
-	client.On(
-		"NewRequest",
-		"GET",
-		"order/certificate",
-		nil,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		new(orderList),
-	).Return(&Response{}, nil).Once()
 
-	s.List()
-}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing order listing with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := order_test_mock_setup()
+			client.On(
+				"NewRequest",
+				"GET",
+				"order/certificate",
+				nil,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				new(orderList),
+			).Return(&Response{}, c.expectedError).Once()
 
-func TestOrdersList_newRequestError(t *testing.T) {
-	s, client := order_test_mock_setup()
-	req, _ := http.NewRequest("GET", "order/certificate", nil)
-	nr_error := errors.New("new_request")
-	client.On(
-		"NewRequest",
-		"GET",
-		"order/certificate",
-		nil,
-	).Return(req, nr_error).Once()
-
-	_, _, err := s.List()
-	if err == nil || !strings.Contains(err.Error(), nr_error.Error()) {
-		t.Errorf("Expected error %s, but got %s", nr_error.Error(), err)
+			_, _, err := s.List()
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
 	}
 }
 
-func TestOrdersList_doError(t *testing.T) {
-	s, client := order_test_mock_setup()
-	req, _ := http.NewRequest("GET", "order/certificate", nil)
-	do_error := errors.New("do")
-	client.On(
-		"NewRequest",
-		"GET",
-		"order/certificate",
-		nil,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		new(orderList),
-	).Return(&Response{}, do_error).Once()
+func TestOrdersGet(t *testing.T) {
+	cases := []struct {
+		nrError       error
+		doError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("do"), errors.New("do")},
+		{nil, nil, nil},
+	}
+	req, _ := http.NewRequest("GET", "order/certificate/1", nil)
 
-	_, _, err := s.List()
-	if err == nil || !strings.Contains(err.Error(), do_error.Error()) {
-		t.Errorf("Expected error %s, but got %s", do_error.Error(), err)
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing order retrieval with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := order_test_mock_setup()
+			client.On(
+				"NewRequest",
+				"GET",
+				"order/certificate/1",
+				nil,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				new(Order),
+			).Return(&Response{}, c.doError).Once()
+
+			_, _, err := s.Get(1)
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
+	}
+}
+
+func TestOrdersCreate_standard(t *testing.T) {
+	cases := []struct {
+		nrError       error
+		doError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("do"), errors.New("do")},
+		{nil, nil, nil},
+	}
+	req, _ := http.NewRequest("POST", "order/certificate/ssl_plus", nil)
+
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing order retrieval with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := order_test_mock_setup()
+			newOrder := InitializeOrder()
+			client.On(
+				"NewRequest",
+				"POST",
+				"order/certificate/ssl_plus",
+				newOrder,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				new(Order),
+			).Return(&Response{}, c.doError).Once()
+
+			_, _, err := s.CreateStandard(newOrder)
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
+	}
+}
+
+func TestOrdersCreate_wildcard(t *testing.T) {
+	cases := []struct {
+		nrError       error
+		doError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("do"), errors.New("do")},
+		{nil, nil, nil},
+	}
+	req, _ := http.NewRequest("POST", "order/certificate/ssl_plus", nil)
+
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing order retrieval with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := order_test_mock_setup()
+			newOrder := InitializeOrder()
+			client.On(
+				"NewRequest",
+				"POST",
+				"order/certificate/ssl_wildcard",
+				newOrder,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				new(Order),
+			).Return(&Response{}, c.doError).Once()
+
+			_, _, err := s.CreateWildcard(newOrder)
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
+	}
+}
+
+func TestOrdersInitializationDefaults(t *testing.T) {
+	defaultOrder := InitializeOrder()
+
+	if defaultOrder.ValidityYears != 1 {
+		t.Errorf("Expected default validity period of 1, but got %d", defaultOrder.ValidityYears)
+	}
+
+	if defaultOrder.PaymentMethod != "balance" {
+		t.Errorf("Expected default payment method of 'balance', but got %s", defaultOrder.PaymentMethod)
+	}
+
+	if defaultOrder.SkipApproval {
+		t.Error("Expected skip approval to be false, but got true")
 	}
 }

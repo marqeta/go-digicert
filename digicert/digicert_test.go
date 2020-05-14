@@ -49,20 +49,36 @@ type TestResponseCodeRange struct {
 }
 
 func TestNewClient(t *testing.T) {
-	c := NewClient("", nil)
+	c, _ := NewClient("", nil, "")
 
 	if got, want := c.BaseURL.String(), defaultBaseURL; got != want {
 		t.Errorf("NewClient BaseURL is %v, want %v", got, want)
 	}
 
-	c2 := NewClient("", nil)
+	c2, _ := NewClient("", nil, "")
 	if c.httpClient == c2.httpClient {
 		t.Error("NewClient returned same http.Clients, but they should differ")
+	}
+
+	c3, _ := NewClient("", nil, "foo/bar")
+	if got, want := c3.BaseURL.String(), "foo/bar"; got != want {
+		t.Errorf("NewClient BaseURL is %v, want %v", got, want)
+	}
+
+	httpClient := new(MockHTTPClient)
+	c4, _ := NewClient("", httpClient, "")
+	if c4.httpClient != httpClient {
+		t.Error("NewClient should have used provided HTTP Client, but created a new one instead")
+	}
+
+	c5, err := NewClient("", nil, "$$$$illegalURLcharcters%%%&&}[]")
+	if c5 != nil || err == nil {
+		t.Errorf("Invalid URL paths should result in an error and a nil client. Client is %+v and error is %s", c5, err)
 	}
 }
 
 func TestNewRequest(t *testing.T) {
-	c := NewClient("secret123", nil)
+	c, _ := NewClient("secret123", nil, "")
 	username := "u"
 
 	inURL, outURL := "foo", defaultBaseURL+"foo"
@@ -87,7 +103,7 @@ func TestNewRequest(t *testing.T) {
 }
 
 func TestNewRequest_invalidJSON(t *testing.T) {
-	c := NewClient("", nil)
+	c, _ := NewClient("", nil, "")
 
 	type T struct {
 		A map[interface{}]interface{}
@@ -103,7 +119,7 @@ func TestNewRequest_invalidJSON(t *testing.T) {
 }
 
 func TestNewRequest_badURL(t *testing.T) {
-	c := NewClient("", nil)
+	c, _ := NewClient("", nil, "")
 	_, err := c.NewRequest("GET", ":", nil)
 	if err == nil {
 		t.Errorf("Expected error to be returned")
@@ -121,7 +137,7 @@ func TestNewRequest_errorForNoTrailingSlash(t *testing.T) {
 		{rawurl: "https://example.com/api/v3", wantError: true},
 		{rawurl: "https://example.com/api/v3/", wantError: false},
 	}
-	c := NewClient("", nil)
+	c, _ := NewClient("", nil, "")
 	for _, test := range tests {
 		u, err := url.Parse(test.rawurl)
 		if err != nil {
@@ -145,7 +161,7 @@ func TestDo(t *testing.T) {
 	}))
 	defer ts.Close()
 	httpClient := ts.Client()
-	c := NewClient("", httpClient)
+	c, _ := NewClient("", httpClient, "")
 	body := new(foo)
 	req, _ := http.NewRequest("GET", ts.URL, nil)
 	c.Do(req, body)
@@ -164,7 +180,7 @@ func TestDo_invalidJSON(t *testing.T) {
 	}))
 	defer ts.Close()
 	httpClient := ts.Client()
-	c := NewClient("", httpClient)
+	c, _ := NewClient("", httpClient, "")
 	body := new(foo)
 	req, _ := http.NewRequest("GET", ts.URL, nil)
 	_, err := c.Do(req, body)
@@ -182,7 +198,7 @@ func TestDo_emptyResponseBody(t *testing.T) {
 	}))
 	defer ts.Close()
 	httpClient := ts.Client()
-	c := NewClient("", httpClient)
+	c, _ := NewClient("", httpClient, "")
 	body := new(foo)
 	req, _ := http.NewRequest("GET", ts.URL, nil)
 	_, err := c.Do(req, body)
@@ -197,7 +213,7 @@ func TestDo_httpClientError(t *testing.T) {
 		"Do",
 		&http.Request{},
 	).Return(&http.Response{}, errors.New("do_error"))
-	c := NewClient("", httpClient)
+	c, _ := NewClient("", httpClient, "")
 	_, err := c.Do(&http.Request{}, nil)
 	if err == nil {
 		t.Fatalf("Error %s not handled", errors.New("do_error"))
@@ -217,7 +233,7 @@ func TestCheckResponse(t *testing.T) {
 	handler(w, req)
 
 	resp := w.Result()
-	c := NewClient("", nil)
+	c, _ := NewClient("", nil, "")
 	err := c.CheckResponse(resp)
 	if err != nil {
 		t.Fatalf("Should return nil for 2xx status codes, but %s returned", err)
@@ -236,7 +252,7 @@ func TestCheckResponse_non200(t *testing.T) {
 
 	resp := w.Result()
 	resp.Request = req
-	c := NewClient("", nil)
+	c, _ := NewClient("", nil, "")
 	err := c.CheckResponse(resp)
 	if err == nil {
 		t.Fatalf("Should return nil for 2xx status codes, but %s returned", err)

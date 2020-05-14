@@ -16,6 +16,10 @@ const (
 	headerAPIKey   = "X-DC-DEVKEY"
 )
 
+type HTTPClient interface {
+	Do(*http.Request) (*http.Response, error)
+}
+
 type DigicertClient interface {
 	NewRequest(string, string, interface{}) (*http.Request, error)
 	Do(*http.Request, interface{}) (*Response, error)
@@ -29,29 +33,33 @@ type Client struct {
 
 	apiKey string
 
-	Users  *UsersService
-	Orders *OrdersService
+	Users         *UsersService
+	Orders        *OrdersService
+	Organizations *OrganizationsService
+	Products      *ProductsService
+	Certificates  *CertificatesService
 }
 
-type HTTPClient interface {
-	Do(*http.Request) (*http.Response, error)
-}
-
-type service struct {
-	client DigicertClient
-}
-
-func NewClient(apiKey string, httpClient HTTPClient) *Client {
-	baseURL, _ := url.Parse(defaultBaseURL)
+func NewClient(apiKey string, httpClient HTTPClient, apiURL string) (*Client, error) {
+	if apiURL == "" {
+		apiURL = defaultBaseURL
+	}
+	parsedURL, err := url.Parse(apiURL)
+	if err != nil {
+		return nil, err
+	}
 	if httpClient == nil {
 		httpClient = &http.Client{}
 	}
-	c := &Client{httpClient: httpClient, BaseURL: baseURL}
+	c := &Client{httpClient: httpClient, BaseURL: parsedURL}
 	c.apiKey = apiKey
 	c.common.client = c
 	c.Users = (*UsersService)(&c.common)
 	c.Orders = (*OrdersService)(&c.common)
-	return c
+	c.Organizations = (*OrganizationsService)(&c.common)
+	c.Products = (*ProductsService)(&c.common)
+	c.Certificates = (*CertificatesService)(&c.common)
+	return c, nil
 }
 
 func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Request, error) {
@@ -92,7 +100,6 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 	response := &Response{Response: resp}
 
 	err = c.CheckResponse(resp)
@@ -101,6 +108,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	}
 
 	if v != nil {
+		defer resp.Body.Close()
 		decErr := json.NewDecoder(resp.Body).Decode(v)
 		if decErr == io.EOF {
 			decErr = nil // ignore EOF errors caused by empty response body
@@ -120,6 +128,7 @@ func (c *Client) CheckResponse(resp *http.Response) error {
 	errorResponse := &ErrorResponse{Response: resp}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err == nil && data != nil {
+		errorResponse.rawBody = data
 		json.Unmarshal(data, errorResponse)
 	}
 	return errorResponse
@@ -129,16 +138,29 @@ type Response struct {
 	*http.Response
 }
 
-type ErrorResponse struct {
-	*http.Response
-	Errors []APIError `json:"errors"`
-}
-
 type APIError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
+type ErrorResponse struct {
+	*http.Response
+	Errors  []APIError `json:"errors"`
+	rawBody []byte
+}
+
 func (r *ErrorResponse) Error() string {
-	return fmt.Sprintf("%v %v: %d %v", r.Response.Request.Method, r.Response.Request.URL, r.Response.StatusCode, r.Errors)
+	return fmt.Sprintf("%v %v: %+v %d %v %s", r.Response.Request.Method, r.Response.Request.URL, r.Response.Header, r.Response.StatusCode, r.Errors, r.rawBody)
+}
+
+type service struct {
+	client DigicertClient
+}
+
+func executeAction(c DigicertClient, method, path string, body, v interface{}) (*Response, error) {
+	req, err := c.NewRequest(method, path, body)
+	if err != nil {
+		return nil, err
+	}
+	return c.Do(req, v)
 }

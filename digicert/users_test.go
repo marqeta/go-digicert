@@ -2,11 +2,9 @@ package digicert
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
-	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/mock"
 )
 
 func user_test_mock_setup() (*UsersService, *MockClient) {
@@ -17,155 +15,169 @@ func user_test_mock_setup() (*UsersService, *MockClient) {
 }
 
 func TestUsersGetMe(t *testing.T) {
-	s, client := user_test_mock_setup()
-	req, _ := http.NewRequest("GET", "user/me", nil)
-	client.On(
-		"NewRequest",
-		"GET",
-		"user/me",
-		nil,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		new(User),
-	).Return(&Response{}, nil).Once()
+	cases := []struct {
+		nrError       error
+		DoError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("Do"), errors.New("Do")},
+		{nil, nil, nil},
+	}
 
-	s.GetMe()
-}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing self retrieval with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := user_test_mock_setup()
+			req, _ := http.NewRequest("GET", "user/me", nil)
+			client.On(
+				"NewRequest",
+				"GET",
+				"user/me",
+				nil,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				new(User),
+			).Return(&Response{}, c.DoError).Once()
 
-func TestUsersGetMe_newRequestError(t *testing.T) {
-	s, client := user_test_mock_setup()
-	req, _ := http.NewRequest("GET", "user/me", nil)
-	nr_error := errors.New("new_request")
-	client.On(
-		"NewRequest",
-		"GET",
-		"user/me",
-		nil,
-	).Return(req, nr_error).Once()
-
-	_, _, err := s.GetMe()
-	if err == nil || !strings.Contains(err.Error(), nr_error.Error()) {
-		t.Errorf("Expected error %s, but got %s", nr_error.Error(), err)
+			_, _, err := s.GetMe()
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
 	}
 }
 
-func TestUsersGetMe_doError(t *testing.T) {
-	s, client := user_test_mock_setup()
-	req, _ := http.NewRequest("GET", "user/me", nil)
-	do_error := errors.New("do")
-	client.On(
-		"NewRequest",
-		"GET",
-		"user/me",
-		nil,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		new(User),
-	).Return(&Response{}, do_error).Once()
+func TestUsersGet(t *testing.T) {
+	cases := []struct {
+		nrError       error
+		DoError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("Do"), errors.New("Do")},
+		{nil, nil, nil},
+	}
 
-	_, _, err := s.GetMe()
-	if err == nil || !strings.Contains(err.Error(), do_error.Error()) {
-		t.Errorf("Expected error %s, but got %s", do_error.Error(), err)
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing self retrieval with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := user_test_mock_setup()
+			req, _ := http.NewRequest("GET", "user/1", nil)
+			client.On(
+				"NewRequest",
+				"GET",
+				"user/1",
+				nil,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				new(User),
+			).Return(&Response{}, c.DoError).Once()
+
+			_, _, err := s.Get(1)
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
 	}
 }
 
 func TestUsersList(t *testing.T) {
-	s, client := user_test_mock_setup()
-	req, _ := http.NewRequest("GET", "user", nil)
-	client.On(
-		"NewRequest",
-		"GET",
-		"user",
-		nil,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		new(userList),
-	).Return(&Response{}, nil).Once()
-
-	s.List()
-}
-
-func TestUsersList_newRequestError(t *testing.T) {
-	s, client := user_test_mock_setup()
-	req, _ := http.NewRequest("GET", "user", nil)
-	nr_error := errors.New("new_request")
-	client.On(
-		"NewRequest",
-		"GET",
-		"user",
-		nil,
-	).Return(req, nr_error).Once()
-
-	_, _, err := s.List()
-	if err == nil || !strings.Contains(err.Error(), nr_error.Error()) {
-		t.Errorf("Expected error %s, but got %s", nr_error.Error(), err)
+	cases := []struct {
+		nrError       error
+		DoError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("Do"), errors.New("Do")},
+		{nil, nil, nil},
 	}
-}
-
-func TestUsersList_doError(t *testing.T) {
-	s, client := user_test_mock_setup()
 	req, _ := http.NewRequest("GET", "user", nil)
-	do_error := errors.New("do")
-	client.On(
-		"NewRequest",
-		"GET",
-		"user",
-		nil,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		new(userList),
-	).Return(&Response{}, do_error).Once()
 
-	_, _, err := s.List()
-	if err == nil || !strings.Contains(err.Error(), do_error.Error()) {
-		t.Errorf("Expected error %s, but got %s", do_error.Error(), err)
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing user listing with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := user_test_mock_setup()
+			client.On(
+				"NewRequest",
+				"GET",
+				"user",
+				nil,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				new(userList),
+			).Return(&Response{}, c.DoError).Once()
+
+			_, _, err := s.List()
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
 	}
 }
 
 func TestUsersEdit(t *testing.T) {
-	var user_id int64 = 1
-	s, client := user_test_mock_setup()
-	user := &User{ID: user_id}
-	req, _ := http.NewRequest("PUT", "user/1", nil)
-	client.On(
-		"NewRequest",
-		"PUT",
-		"user/1",
-		user,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		mock.AnythingOfType("*digicert.User"),
-	).Return(&Response{}, nil).Once()
+	user := &User{ID: 1}
+	cases := []struct {
+		nrError       error
+		DoError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("Do"), errors.New("Do")},
+		{nil, nil, nil},
+	}
+	req, _ := http.NewRequest("GET", "user/1", nil)
 
-	s.Edit(user)
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing user edits with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := user_test_mock_setup()
+			client.On(
+				"NewRequest",
+				"PUT",
+				"user/1",
+				user,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				user,
+			).Return(&Response{}, c.DoError).Once()
+
+			_, _, err := s.Edit(user)
+			testExpectedErrorChecker(t, c.expectedError, err)
+		})
+	}
 }
 
 func TestUsersCreate(t *testing.T) {
-	var user_id int64 = 1
-	s, client := user_test_mock_setup()
-	user := &User{ID: user_id}
+	user := &User{}
+	cases := []struct {
+		nrError       error
+		DoError       error
+		expectedError error
+	}{
+		{errors.New("new_request"), nil, errors.New("new_request")},
+		{nil, errors.New("Do"), errors.New("Do")},
+		{nil, nil, nil},
+	}
 	req, _ := http.NewRequest("POST", "user", nil)
-	client.On(
-		"NewRequest",
-		"POST",
-		"user",
-		user,
-	).Return(req, nil).Once()
-	client.On(
-		"Do",
-		req,
-		user,
-	).Return(&Response{}, nil).Once()
 
-	s.Create(user)
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("Testing user creation with expected error %s", c.expectedError), func(t *testing.T) {
+			s, client := user_test_mock_setup()
+			client.On(
+				"NewRequest",
+				"POST",
+				"user",
+				user,
+			).Return(req, c.nrError).Once()
+			client.On(
+				"Do",
+				req,
+				user,
+			).Return(&Response{}, c.DoError).Once()
+
+			_, _, err := s.Create(user)
+			testExpectedErrorChecker(t, c.expectedError, err)
+
+		})
+	}
 }
