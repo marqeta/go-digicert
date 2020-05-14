@@ -16,6 +16,10 @@ const (
 	headerAPIKey   = "X-DC-DEVKEY"
 )
 
+type HTTPClient interface {
+	Do(*http.Request) (*http.Response, error)
+}
+
 type DigicertClient interface {
 	NewRequest(string, string, interface{}) (*http.Request, error)
 	Do(*http.Request, interface{}) (*Response, error)
@@ -34,14 +38,6 @@ type Client struct {
 	Organizations *OrganizationsService
 	Products      *ProductsService
 	Certificates  *CertificatesService
-}
-
-type HTTPClient interface {
-	Do(*http.Request) (*http.Response, error)
-}
-
-type service struct {
-	client DigicertClient
 }
 
 func NewClient(apiKey string, httpClient HTTPClient, apiURL string) (*Client, error) {
@@ -64,14 +60,6 @@ func NewClient(apiKey string, httpClient HTTPClient, apiURL string) (*Client, er
 	c.Products = (*ProductsService)(&c.common)
 	c.Certificates = (*CertificatesService)(&c.common)
 	return c, nil
-}
-
-func executeAction(c DigicertClient, method, path string, body, v interface{}) (*Response, error) {
-	req, err := c.NewRequest(method, path, body)
-	if err != nil {
-		return nil, err
-	}
-	return c.Do(req, v)
 }
 
 func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Request, error) {
@@ -150,17 +138,29 @@ type Response struct {
 	*http.Response
 }
 
+type APIError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
 type ErrorResponse struct {
 	*http.Response
 	Errors  []APIError `json:"errors"`
 	rawBody []byte
 }
 
-type APIError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
 func (r *ErrorResponse) Error() string {
 	return fmt.Sprintf("%v %v: %+v %d %v %s", r.Response.Request.Method, r.Response.Request.URL, r.Response.Header, r.Response.StatusCode, r.Errors, r.rawBody)
+}
+
+type service struct {
+	client DigicertClient
+}
+
+func executeAction(c DigicertClient, method, path string, body, v interface{}) (*Response, error) {
+	req, err := c.NewRequest(method, path, body)
+	if err != nil {
+		return nil, err
+	}
+	return c.Do(req, v)
 }

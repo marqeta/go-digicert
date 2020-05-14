@@ -9,10 +9,6 @@ type Product struct {
 	AllowedValidityYears []int `json:"allowed_validity_years"`
 }
 
-type productList struct {
-	Products []*Product
-}
-
 type ProductsService service
 
 func (s *ProductsService) List() ([]*Product, *Response, error) {
@@ -23,4 +19,8 @@ func (s *ProductsService) List() ([]*Product, *Response, error) {
 	}
 
 	return list.Products, resp, nil
+}
+
+type productList struct {
+	Products []*Product
 }

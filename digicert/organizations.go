@@ -5,8 +5,6 @@ import (
 	"time"
 )
 
-type OrganizationsService service
-
 type Organization struct {
 	ID          int        `json:"id,string,omitempty"` // NOTE: this value sometimes come back as as string?
 	Status      string     `json:"status,omitempty"`
@@ -43,9 +41,7 @@ type Organization struct {
 	Contacts []*Contact `json:"contacts,omitempty"`
 }
 
-type organizationList struct {
-	Organizations *[]Organization
-}
+type OrganizationsService service
 
 func (s *OrganizationsService) List() (*[]Organization, *Response, error) {
 	list := new(organizationList)
@@ -64,4 +60,8 @@ func (s *OrganizationsService) Get(org_id int) (*Organization, *Response, error)
 		return nil, resp, err
 	}
 	return organization, resp, nil
+}
+
+type organizationList struct {
+	Organizations *[]Organization
 }

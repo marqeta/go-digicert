@@ -19,6 +19,10 @@ type Certificate struct {
 	SerialNumber  string `json:"serial_number,omitempty"`
 }
 
+func (o Certificate) String() string {
+	return Stringify(o)
+}
+
 type PEM struct {
 	SubjectCommonName string `json:"subject_common_name"`
 	PEM               string `json:"pem"`
@@ -26,10 +30,6 @@ type PEM struct {
 
 type PEMBundle struct {
 	PEMs []*PEM `json:"intermediates"`
-}
-
-func (o Certificate) String() string {
-	return Stringify(o)
 }
 
 type CertificatesService service

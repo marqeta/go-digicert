@@ -4,8 +4,6 @@ import (
 	"fmt"
 )
 
-type UsersService service
-
 type User struct {
 	ID                      int          `json:"id,omitempty"`
 	Username                string       `json:"username,omitempty"`
@@ -27,18 +25,16 @@ type User struct {
 	ContainerIDAssignments  []int        `json:"container_id_assignments,omitempty"`
 }
 
+func (u User) String() string {
+	return Stringify(u)
+}
+
 type AccessRole struct {
 	ID   int    `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
 }
 
-type userList struct {
-	Users []*User
-}
-
-func (u User) String() string {
-	return Stringify(u)
-}
+type UsersService service
 
 func (s *UsersService) GetMe() (*User, *Response, error) {
 	return s.get("user/me")
@@ -88,4 +84,8 @@ func (s *UsersService) Delete(user *User) (*User, *Response, error) {
 	path := fmt.Sprintf("user/%d", user.ID)
 	resp, err := executeAction(s.client, "DELETE", path, nil, user)
 	return nil, resp, err
+}
+
+type userList struct {
+	Users []*User
 }

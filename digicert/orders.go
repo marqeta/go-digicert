@@ -9,8 +9,6 @@ const (
 	defaultPaymentMethod  = "balance"
 )
 
-type OrdersService service
-
 type Order struct {
 	ID                          int          `json:"id"`
 	Certificate                 Certificate  `json:"certificate,omitempty"`
@@ -35,66 +33,11 @@ type Order struct {
 	Container    Container `json:"container,omitempty"`
 }
 
-type OrderRequest struct {
-	ID     int    `json:"id"`
-	Status string `json:"status"`
-}
-
-type NewOrder struct {
-	Certificate                 Certificate     `json:"certificate"`
-	RenewedThumbprint           string          `json:"renewed_thumbprint,omitempty"`
-	ValidityYears               int             `json:"validity_years,omitempty"`
-	ValidityDays                int             `json:"validity_days,omitempty"`
-	CustomExpirationDate        string          `json:"custom_expiration_date,omitempty"`
-	Comments                    string          `json:"comments,omitempty"`
-	AutoRenew                   int             `json:"auto_renew,omitempty"`
-	CustomRenewalMessage        string          `json:"custom_renewal_message,omitempty"`
-	DisableRenewalNotifications bool            `json:"disable_renewal_notifications"`
-	AdditionalEmails            []string        `json:"additional_emails,omitempty"`
-	RenewalOrderID              int             `json:"renewal_order_id,omitempty"`
-	PaymentMethod               string          `json:"payment_method,omitempty"`
-	PaymentProfile              *PaymentProfile `json:"payment_profile,omitempty"`
-	DCVMethod                   string          `json:"dcv_method,omitempty"`
-	SkipApproval                bool            `json:"skip_approval"`
-	DisableCT                   bool            `json:"disable_ct"`
-	Organization                Organization    `json:"organization"`
-	Container                   *Container      `json:"container,omitempty"`
-}
-
-type PaymentProfile struct {
-	ID           int    `json:"id,omitempty"`
-	IsDefault    bool   `json:"is_default"`
-	Status       string `json:"status,omitempty"`
-	BillingEmail string `json:"billing_email,omitempty"`
-}
-
-func InitializeOrder() *NewOrder {
-	order := new(NewOrder)
-	order.setNewOrderDefaults()
-	return order
-}
-
-func (order *NewOrder) setNewOrderDefaults() {
-	if order.ValidityYears == 0 {
-		order.ValidityYears = defaultCertificateTTL
-	}
-
-	if order.PaymentMethod == "" {
-		order.PaymentMethod = "balance"
-	}
-}
-
-type orderOrganizationAttrs struct {
-	ID int `json:"id"`
-}
-
-type orderList struct {
-	Orders []*Order
-}
-
 func (o Order) String() string {
 	return Stringify(o)
 }
+
+type OrdersService service
 
 func (s *OrdersService) Get(order_id int) (*Order, *Response, error) {
 	order := &Order{}
@@ -130,4 +73,65 @@ func (s *OrdersService) CreateWildcard(orderReq *NewOrder) (*Order, *Response, e
 
 func (s *OrdersService) CreateStandard(orderReq *NewOrder) (*Order, *Response, error) {
 	return s.Create(orderReq, "ssl_plus")
+}
+
+type OrderRequest struct {
+	ID     int    `json:"id"`
+	Status string `json:"status"`
+}
+
+// NOTE I'm not sure there is really a compelling reason to have this struct.
+// Its original intent was to try to address some of the inconsistent behavior
+// with the Digicert API, but in the end I'm starting to lean toward to just
+// using the Order struct.
+type NewOrder struct {
+	Certificate                 Certificate     `json:"certificate"`
+	RenewedThumbprint           string          `json:"renewed_thumbprint,omitempty"`
+	ValidityYears               int             `json:"validity_years,omitempty"`
+	ValidityDays                int             `json:"validity_days,omitempty"`
+	CustomExpirationDate        string          `json:"custom_expiration_date,omitempty"`
+	Comments                    string          `json:"comments,omitempty"`
+	AutoRenew                   int             `json:"auto_renew,omitempty"`
+	CustomRenewalMessage        string          `json:"custom_renewal_message,omitempty"`
+	DisableRenewalNotifications bool            `json:"disable_renewal_notifications"`
+	AdditionalEmails            []string        `json:"additional_emails,omitempty"`
+	RenewalOrderID              int             `json:"renewal_order_id,omitempty"`
+	PaymentMethod               string          `json:"payment_method,omitempty"`
+	PaymentProfile              *PaymentProfile `json:"payment_profile,omitempty"`
+	DCVMethod                   string          `json:"dcv_method,omitempty"`
+	SkipApproval                bool            `json:"skip_approval"`
+	DisableCT                   bool            `json:"disable_ct"`
+	Organization                Organization    `json:"organization"`
+	Container                   *Container      `json:"container,omitempty"`
+}
+
+func InitializeOrder() *NewOrder {
+	order := new(NewOrder)
+	order.setNewOrderDefaults()
+	return order
+}
+
+func (order *NewOrder) setNewOrderDefaults() {
+	if order.ValidityYears == 0 {
+		order.ValidityYears = defaultCertificateTTL
+	}
+
+	if order.PaymentMethod == "" {
+		order.PaymentMethod = "balance"
+	}
+}
+
+type PaymentProfile struct {
+	ID           int    `json:"id,omitempty"`
+	IsDefault    bool   `json:"is_default"`
+	Status       string `json:"status,omitempty"`
+	BillingEmail string `json:"billing_email,omitempty"`
+}
+
+type orderOrganizationAttrs struct {
+	ID int `json:"id"`
+}
+
+type orderList struct {
+	Orders []*Order
 }
