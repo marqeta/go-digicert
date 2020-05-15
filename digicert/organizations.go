@@ -6,7 +6,7 @@ import (
 )
 
 type Organization struct {
-	ID          int        `json:"id,string,omitempty"` // NOTE: this value sometimes come back as as string?
+	ID          int        `json:"id,omitempty"` // NOTE: this value sometimes come back as as string?
 	Status      string     `json:"status,omitempty"`
 	Name        string     `json:"name,omitempty"`
 	AssumedName string     `json:"assumed_name,omitempty"`
