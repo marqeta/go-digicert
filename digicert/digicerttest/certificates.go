@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 
 	"github.com/marqeta/go-digicert/digicert"
@@ -35,4 +36,20 @@ func NewTestCertificate(common_name string) (*digicert.Certificate, error) {
 	dcert.OrganizationUnits = []string{"Certificate Factory Test Org Inc LLC"}
 
 	return dcert, nil
+}
+
+func NewChainBundle(chain_length int) (*digicert.PEMBundle, error) {
+	if chain_length <= 0 {
+		return nil, errors.New("chain_length must be a positive integer value")
+	}
+	bundle := &digicert.PEMBundle{PEMs: make([]*digicert.PEM, chain_length)}
+	for i, _ := range bundle.PEMs {
+		bundle.PEMs[i] = newPEM("test")
+	}
+	return bundle, nil
+}
+
+func newPEM(subject_common_name string) *digicert.PEM {
+	// NOTE in the future we can make these attributes more useful, e.g. set a real PEM value
+	return &digicert.PEM{SubjectCommonName: subject_common_name}
 }
